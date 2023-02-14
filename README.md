@@ -1,10 +1,4 @@
-# Test
-## sous Test
-*italic*
 
-**bold**
-
-**_bold italic_**
 
 # Projet golf :
 
