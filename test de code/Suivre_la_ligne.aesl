@@ -1,0 +1,38 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event name="nombre1" size="1"/>
+<event name="nombre2" size="1"/>
+
+
+<!--node Thymio sur DESKTOP-JET175O - 7820-->
+<node nodeId="{301d5d40-aab6-48be-9be1-4ec8fb313fb5}" name="Thymio sur DESKTOP-JET175O - 7820"><![CDATA[var etatg
+var etatd
+onevent button.center
+motor.right.target=125
+motor.left.target=125
+call leds.top(0,0,32)
+timer.period[1]=100
+onevent timer1
+etatg=prox.ground.delta[0]
+etatd=prox.ground.delta[1]
+emit nombre1 etatg
+emit nombre2 etatd
+if  etatg>200 then
+if etatd>200 then
+	motor.right.target=250
+	motor.left.target=125
+else
+	motor.right.target=125
+	motor.left.target=250
+	end
+end
+onevent button.backward
+motor.right.target=0
+motor.left.target=0
+call leds.top(32,32,0)]]></node>
+
+
+</network>

@@ -1,0 +1,52 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event size="1" name="nombre1"/>
+<event size="1" name="nombre2"/>
+
+
+<!--node Thymio-II Robot-->
+<node nodeId="{b00db633-cb01-4174-badb-937f8eba23c1}" name="Thymio-II Robot"><![CDATA[var etatg
+var etatd
+var etat 
+var val
+var inc=0
+val=200
+etat=0
+timer.period[0]=100
+
+onevent button.center
+motor.right.target=125
+motor.left.target=125
+call leds.top(0,0,32)
+timer.period[1]=100
+onevent timer1
+etatg=prox.ground.delta[0]
+etatd=prox.ground.delta[1]
+emit nombre1 etatg
+emit nombre2 etatd
+onevent button.left
+onevent timer0
+inc++
+if  val==100 and inc<5 then
+motor.right.target=250
+motor.left.target=-250
+call leds.top(32,0,0)
+if  val==200 and inc<5 then
+motor.right.target=250
+motor.left.target=-125
+call leds.top(0,32,0)
+end
+else 
+motor.right.target=0
+motor.left.target=0
+onevent button.backward
+if (etatg>=0 and etatd>=0) then
+	motor.right.target=0
+	motor.left.target=0
+end]]></node>
+
+
+</network>

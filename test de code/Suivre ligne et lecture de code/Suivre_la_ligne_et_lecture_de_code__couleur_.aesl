@@ -1,0 +1,184 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event size="7" name="codebarre"/>
+<event size="8" name="ligne"/>
+
+
+<!--node Thymio sur DESKTOP-V5RDJ31 - 7748-->
+<node name="Thymio sur DESKTOP-V5RDJ31 - 7748" nodeId="{fb70d6c2-bf18-4aa9-99cf-22cdb44f64a1}"><![CDATA[var etatg
+var etatd
+var switch=0
+var impaire=1
+var speedcms=0
+var colour=10
+var gris=700 #gris correspond au gris (entre blanc et noir) et c'est la valeur à viser par le robot en suivant la ligne
+var incamorce=0 #son but est de calculer l'incrément pour 3,5 cm
+var inclect=0 #son but est de calculer l'incrément pour 7,5 cm
+var inccm=0 #son but est de calculer l'incrément pour 1 cm
+var amorce=0 #vérifie s'il s'agit bien d'une amorce
+var tmp1 #tmp1 prend la valeur de incamorce pour garder incamorce intact
+var tmp2 #tmp2 prend la valeur de incamorce pour garder inclect intact
+var bit1[3]=[0,0,0]
+timer.period[1]=100
+onevent timer1
+etatg=prox.ground.delta[0] #lecture gauche
+etatd=prox.ground.delta[1] #lecture droite
+emit ligne [etatg,etatd,colour-10,speedcms,impaire,switch,motor.left.target,motor.right.target]
+emit codebarre[tmp1,tmp2,inccm,amorce,bit1]
+if  switch==1 then
+	if (etatg<gris-200) then #si gauche voit du noir, alors il vire à droite
+		motor.left.target=speedcms + ((gris-etatg)%speedcms*2)
+		motor.right.target=speedcms - ((gris-etatg)%speedcms*2)
+else if (etatg>gris+200) then #si gauche voit du blanc, alors il vire à gauche	
+		motor.left.target=speedcms + ((gris-etatg)%speedcms*2)
+		motor.right.target=speedcms - ((gris-etatg)%speedcms*2)
+	else #sinon il va tout droit
+		motor.left.target=speedcms
+		motor.right.target=speedcms
+		end
+	end
+	if etatd<500 and amorce==0 then #dès que le détecteur droit détecte du noir alors tmp1 décrémente 1 fois et amorce est vrai
+		tmp1--
+		amorce=1
+	end
+	if amorce==1 and tmp1>0 then #si l'amorce est vrai et tmp1 est  supérieur à 0 alors on continue de décrémenter tmp1
+		tmp1--
+	end
+	if tmp1==0 and tmp2>0 then #dès que tmp1 est égal à 0, ça veut dire que l'amorce est finie, et on passe à la lecture tant que tmp 2 est supérieur à0
+		if tmp2>7*inccm then # si le robot se situe dans la première case, il lit le premier bit
+			if etatd<500 then #comparaison pour déterminer si c'est 1 ou 0
+				bit1[0]=1
+			else 
+				bit1[0]=0
+			end			
+		end
+		if tmp2<6*inccm and tmp2>4*inccm then # si le robot se situe dans la deuxième case, il lit le deuxième bit
+			if etatd<500 then
+				bit1[1]=1
+			else 
+				bit1[1]=0
+			end
+		end
+		if tmp2<3*inccm and tmp2>2*inccm then # si le robot se situe dans la troisième case, il lit le troisième bit
+			if etatd<500 then
+				bit1[2]=1
+			else 
+				bit1[2]=0
+			end
+		end
+		tmp2-- #décrémentation de tmp2
+		if  tmp2==0 then #dès que tmp2 est égal à 0 on affiche la couleur correspondant au bit lu
+			amorce=0 # on remet amorce à 0 pour qu'on puisse relire un autre code barre en chemin
+			tmp1=incamorce #on remet tmp1 à la valeur incamorce
+			if bit1[0]==0 then
+				if bit1[1]==0 then
+					if bit1[2]==0 then
+						call leds.top(16,16,16) #si 000 alors blanc
+					else
+						call leds.top(32,0,0)#si 001 alors rouge
+					end
+				else 
+					if bit1[2]==0 then
+						call leds.top(0,32,0)#si 010 alors vert
+					else
+						call leds.top(32,32,0)#si 011 alors jaune
+					end
+				end
+			else 
+				if bit1[1]==0 then
+					if bit1[2]==0 then
+						call leds.top(0,0,32)#si 100 alors bleu
+					else
+						call leds.top(32,0,32)#si 101 alors magenta
+					end
+				else 
+					if bit1[2]==0 then
+						call leds.top(0,32,32)#si 110 alors cyan
+					else
+						call leds.top(0,32,16)#si 111 alors vert bleuté
+					end
+				end
+			end
+			tmp2=inclect#tmp2 est remis à la valeur de inclect
+		end
+	end
+end
+onevent button.center
+if button.center==1 then #incrémente le mode à chaque fois qu'on appuye sur le bouton central
+	switch++
+end
+if  switch==2 then #remet le mode à 0 quand le mode est à 2 (donc on a que 2 modes)
+	switch=0
+end
+onevent button.right #incrémente en cm/s
+if  switch==0 and button.right==1 then
+		if impaire==1 then
+		speedcms+=23
+		impaire=0
+		colour++
+		else
+		speedcms+=22
+		impaire=1
+		colour++
+		end
+		if speedcms>500 then
+			speedcms=0
+			impaire=1
+			colour=10
+		end
+		call leds.top(colour,0,0)
+		if colour !=10 then
+			incamorce=35/(colour-10) #incrément de l'amorce
+			inclect=75/(colour-10) #incrément de lecture totale
+			inccm=10/(colour-10) #incrément de 1 cm distance
+			tmp1=incamorce #la valeur temporaire de incamorce
+			tmp2=inclect #la valeur temporaire de inclect
+		end
+end
+
+onevent button.left #décremente en cm/s
+if  switch==0 and button.left==1 then
+		if impaire==1 then
+		speedcms-=22
+		impaire=0
+		colour--
+		else
+		speedcms-=23
+		impaire=1
+		colour--
+		end
+		if speedcms<0 then
+			speedcms=495
+			impaire=1
+			colour=32
+		end
+		call leds.top(colour,0,0)
+		if colour !=10 then
+			incamorce=35/(colour-10) #incrément de l'amorce
+			inclect=75/(colour-10) #incrément de lecture totale
+			inccm=10/(colour-10) #incrément de 1 cm distance
+			tmp1=incamorce #la valeur temporaire de incamorce
+			tmp2=inclect #la valeur temporaire de inclect
+		end
+end
+onevent button.backward #arrêt manuel basé sur n'importe quelle valeur détectée par les capteurs de proximité
+	if   (etatg>=0 and etatd >=0) then
+		motor.right.target=0
+		motor.left.target=0
+		call leds.top(32,32,0)
+		colour=10
+		speedcms=0
+		impaire=1
+		switch=0
+		incamorce=0
+		inclect=0
+		inccm=0
+		tmp1=0
+		tmp2=0
+	end]]></node>
+
+
+</network>

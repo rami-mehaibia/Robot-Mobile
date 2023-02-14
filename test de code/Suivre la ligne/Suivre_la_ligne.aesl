@@ -1,0 +1,100 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event name="ligne" size="6"/>
+
+
+<!--node Thymio sur DESKTOP-V5RDJ31 - 8564-->
+<node name="Thymio sur DESKTOP-V5RDJ31 - 8564" nodeId="{f9b501f7-4c79-488d-8d79-72d87eda8479}"><![CDATA[var etatg
+var etatd
+var gris=500
+var switch=0
+var impaire=1
+var speedcms=0
+var colour=10
+timer.period[1]=100
+onevent timer1
+etatg=prox.ground.delta[0] #lecture gauche
+etatd=prox.ground.delta[1] #lecture droite
+emit ligne [etatg,etatd,colour-10,speedcms,impaire,switch]
+if  switch==2 then
+	while (etatg<gris-100) do
+		motor.left.target=speedcms + ((gris-etatg)%speedcms)
+		motor.right.target=speedcms - ((gris-etatg)%speedcms)
+		call leds.top(32,0,32)
+	end
+	while (etatg>gris+100) do
+		motor.left.target=speedcms + ((gris-etatg)%speedcms)
+		motor.right.target=speedcms - ((gris-etatg)%speedcms)
+		call leds.top(0,0,32)
+	end
+	while (etatg<=gris+100) and (etatg>=gris-100) do
+		motor.left.target=speedcms
+		motor.right.target=speedcms
+		call leds.top(0,32,32)
+	end
+end
+onevent button.center
+if button.center==1 then #incrémente le mode à chaque fois qu'on appuye sur le bouton central
+	switch++
+end
+if  switch==3 then #remet le mode à 0 quand le mode est à 2 (donc on a que 2 modes)
+	switch=0
+end
+if  switch==1 then
+	motor.left.target=speedcms
+	motor.right.target=speedcms
+	call leds.top(0,32,0)
+end
+onevent button.right #incrémente en cm/s
+if  switch==0 and button.right==1 then
+		if impaire==1 then
+		speedcms+=23
+		impaire=0
+		colour++
+		else
+		speedcms+=22
+		impaire=1
+		colour++
+		end
+		if speedcms>500 then
+			speedcms=0
+			impaire=1
+			colour=10
+		end
+		call leds.top(colour,0,0)
+end
+
+onevent button.left #décremente en cm/s
+if  switch==0 and button.left==1 then
+		if impaire==1 then
+		speedcms-=22
+		impaire=0
+		colour--
+		else
+		speedcms-=23
+		impaire=1
+		colour--
+		end
+		if speedcms<0 then
+			speedcms=495
+			impaire=1
+			colour=32
+		end
+		call leds.top(colour,0,0)
+end
+onevent button.backward #arrêt manuel basé sur n'importe quelle valeur détectée par les capteurs de proximité
+	if   (etatg>=0 and etatd >=0) then
+		motor.right.target=0
+		motor.left.target=0
+		call leds.top(32,32,0)
+		colour=10
+		speedcms=0
+		impaire=1
+		switch=0
+	end]]></node>
+
+
+</network>

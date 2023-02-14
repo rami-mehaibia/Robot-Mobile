@@ -1,0 +1,179 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event size="9" name="info"/>
+
+
+<!--node Thymio sur DESKTOP-V5RDJ31 - 8332-->
+<node nodeId="{fcbca611-6a3b-4c20-b41b-abb7349a35e4}" name="Thymio sur DESKTOP-V5RDJ31 - 8332"><![CDATA[var switch=0
+var impaire=1
+var speedcms=0
+var colour=10
+var etatg
+var etatd
+var bit[3]
+var mode=0
+var dist
+var timefordist
+timer.period[1]=100
+onevent timer1
+etatg=prox.ground.delta[0] #lecture gauche
+etatd=prox.ground.delta[1] #lecture droite
+emit info[switch,mode,speedcms,bit,colour-10,dist,timefordist]
+if switch==1 then
+	if timefordist>0 then
+		motor.left.target=speedcms
+		motor.right.target=speedcms
+		timefordist--
+	else
+		motor.left.target=0
+		motor.right.target=0
+	end
+end
+onevent button.center
+if button.center==1 then #incrémente le mode à chaque fois qu'on appuye sur le bouton central
+	switch++
+end
+if  switch==2 then #remet le mode à 0 quand le mode est à 2 (donc on a que 2 modes)
+	switch=0
+end
+onevent button.right #incrémente en cm/s
+if  switch==0 then
+	if mode==0 and button.right==1 then
+			if impaire==1 then
+			speedcms+=23
+			impaire=0
+			colour++
+			else
+			speedcms+=22
+			impaire=1
+			colour++
+			end
+			if speedcms>500 then
+				speedcms=0
+				impaire=1
+				colour=10
+			end
+			call leds.top(colour,0,0)
+	end
+	if  mode==1 and button.right==1 then
+		bit[0]++
+		if bit[0]==1 then
+			call leds.top(0,32,0)
+		end
+	end
+	if bit[0]==2 then
+		bit[0]=0
+		call leds.top (0,0,32)
+	end
+	if  mode==2 and button.right==1 then
+		bit[1]++
+		if bit[1]==1 then
+			call leds.top(0,32,0)
+		end
+	end
+	if bit[1]==2 then
+		bit[1]=0
+		call leds.top (0,0,32)
+	end
+	if  mode==3 and button.right==1 then
+		bit[2]++
+		if bit[2]==1 then
+			call leds.top(0,32,0)
+		end
+	end
+	if bit[2]==2 then
+		bit[2]=0
+		call leds.top (0,0,32)
+	end
+	dist=bit[0]*10+bit[1]*20+bit[2]*40
+	if  colour==10 then
+		timefordist=0
+	else
+		timefordist=dist*10/(colour-10)
+	end
+end
+onevent button.left #décremente en cm/s
+if  switch==0 then
+	if  mode==0 and button.left==1 then
+			if impaire==1 then
+			speedcms-=22
+			impaire=0
+			colour--
+			else
+			speedcms-=23
+			impaire=1
+			colour--
+			end
+			if speedcms<0 then
+				speedcms=495
+				impaire=1
+				colour=32
+			end
+			call leds.top(colour,0,0)
+	end
+	if  mode==1 and button.left==1 then
+		bit[0]--
+		if bit[0]==0 then
+			call leds.top(0,0,32)
+		end
+	end
+	if bit[0]==-1 then
+		bit[0]=1
+		call leds.top (0,32,0)
+	end
+	if  mode==2 and button.left==1 then
+		bit[1]--
+		if bit[1]==0 then
+			call leds.top(0,0,32)
+		end
+	end
+	if bit[1]==-1 then
+		bit[1]=1
+		call leds.top (0,32,0)
+	end
+	if  mode==3 and button.left==1 then
+		bit[2]--
+		if bit[2]==0 then
+			call leds.top(0,0,32)
+		end
+	end
+	if bit[2]==-1 then
+		bit[2]=1
+		call leds.top (0,32,0)
+	end
+	dist=bit[0]*10+bit[1]*20+bit[2]*40
+	if  colour==10 then
+		timefordist=0
+	else
+		timefordist=dist*10/(colour-10)
+	end
+end
+onevent button.forward
+	if  switch==0 and button.forward==1 then
+		mode++
+	end
+	if  mode==4 then
+		mode=0
+	end
+onevent button.backward #arrêt manuel basé sur n'importe quelle valeur détectée par les capteurs de proximité
+	if   (etatg>=0 and etatd >=0) then
+		motor.right.target=0
+		motor.left.target=0
+		call leds.top(32,32,0)
+		colour=10
+		speedcms=0
+		impaire=1
+		switch=0
+		mode=0
+		bit[0]=0
+		bit[1]=0
+		bit[2]=0
+		dist=0
+		timefordist=0
+	end]]></node>
+
+
+</network>

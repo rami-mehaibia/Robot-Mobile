@@ -1,0 +1,468 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event size="18" name="bla"/>
+
+
+<!--node Thymio sur DESKTOP-V5RDJ31 - 11916-->
+<node nodeId="{e1002f3e-527f-4d5b-89e6-6bade3e35fe3}" name="Thymio sur DESKTOP-V5RDJ31 - 11916"><![CDATA[#variables de base
+
+var switch #mode principal
+var impaire #c'est pour décaler la vitesse entre 23 u et 22 u
+var speedcms #la vitesse de en unités du robots
+var colour #la vitesse en cm/ (à partir de 0) représenté par le code couleur du robot (22cm/s vitesse maximale, couleur maximale 32)
+var mode #change de mode pendant un switch (en gros un mode intermédiaire)
+var change=0
+var cmsplace=1 #le nombre de cm/s pour la vitesse de lecture de code
+var timeforplace=500/cmsplace #parcourir 10cms pour bien se placer
+
+#variables déstinés à la rotation
+
+var rotamode #Valeur entière avec codage défini
+var timeforrota #temps en 0,1 secondes pour faire la rotamode
+
+#variables déstinés à la distance
+
+var dist #la distance en cm à effectuer par le robot
+var timefordist #le temps nécessaire pour faire cette distance
+
+#variables déstinés à la lecture de codes barre et suivi de ligne
+
+var etatg #vérifie si c'est noir ou blanc à gauche
+var etatd #vérifie si c'est noir ou blanc à droite
+var bit[3] #tableau représentant les bits de code barre
+var lect[3]=[60,37,12] #valeurs de lecture du code barre
+var vitlect=23 #la base c'est 1cm/s pour lire les codes
+var gris=700 #gris correspond au gris (entre blanc et noir) et c'est la valeur à viser par le robot en suivant la ligne
+var incamorce=35 #c'est l'incrément pour 3,5 cm à la vitesse 1cm/s
+var inclect=65 #c'est l'incrément pour 6,5 cm à la vitesse 1cm/s
+var amorce #vérifie s'il s'agit bien d'une amorce
+var tmp1 #tmp1 prend la valeur de incamorce pour garder incamorce intact
+var tmp2 #tmp2 prend la valeur de incamorce pour garder inclect intact
+var L[8]#pour montrer la progression
+timer.period[1]=100 #100ms =0,1 secondes
+timer.period[0]=10 #10ms=0,01 secondes
+callsub zero
+sub zero
+	motor.right.target=0
+	motor.left.target=0
+	change=0
+	incamorce=35
+	inclect=65
+	lect=[60,37,12]
+	vitlect=23
+	colour=10
+	speedcms=0
+	impaire=1
+	switch=0
+	mode=0
+	bit[0]=0
+	bit[1]=0
+	bit[2]=0
+	rotamode=0
+	timeforrota=0
+	dist=0
+	timefordist=0
+	tmp1=incamorce
+	tmp2=inclect
+	L=[16,16,16,16,16,16,16,16]
+	amorce=0
+	cmsplace=1
+	timeforplace=1000/cmsplace
+	callsub verif
+	call leds.bottom.left(32,0,0)
+	call leds.bottom.right(0,0,32)
+sub verif
+	call leds.circle(L[0],L[1],L[2],L[3],L[4],L[5],L[6],L[7])
+onevent timer0
+if switch==2 then
+	if  timeforplace>0 then#tant qu'on a pas timeforplace=0 alors on avance pour se placer
+		motor.left.target=vitlect
+		motor.right.target=vitlect
+		if change==0 then
+			call leds.top(32,8,16)
+		end
+		if  change==1 then
+			call leds.top(16,32,8)
+		end
+		if  change==2  then
+			call leds.top(8,16,32)
+		end
+		timeforplace--
+	else
+		if timeforrota>0 then #tant que la décrémentation n'est pas fini
+			if rotamode==0 then
+				call leds.top(16,16,16) #000 alors blanc
+			end
+			if  rotamode==1 then
+				call leds.top(0,0,32) #100 alors bleu
+			end
+			if  rotamode==2 then
+				call leds.top(0,32,0) #010 alors vert
+			end
+			if  rotamode==3 then
+				call leds.top(0,32,32) #110 alors cyan
+			end
+			if  rotamode==4 then
+				call leds.top(32,0,0) #001 alors rouge
+			end
+			if  rotamode==5 then
+				call leds.top(32,0,32) #101 alors magenta
+			end
+			if  rotamode==6 then
+				call leds.top(32,32,0) #011 alors jaune
+			end
+			if  rotamode==7 then
+				call leds.top(0,32,16) #111 alors vert-bleuté
+			end
+			if rotamode%2==0 then #si la valeur entière avec codage défini est paire alors peu importe le résultat, le robot va tourner vers la gauche
+				motor.left.target=-speedcms
+				motor.right.target=speedcms
+			else #sinon beeeeeen à droite
+				motor.left.target=speedcms
+				motor.right.target=-speedcms
+			end
+			timeforrota-- #décrémente le temps de rotation
+		else  #dès qu'il a fini de décrémenter, il passe à la distance
+			if dist==-5 then
+				call leds.top(16,16,16) #000 alors blanc
+			end
+			if  dist==5 then
+				call leds.top(0,0,32) #100 alors bleu
+			end
+			if  dist==15 then
+				call leds.top(0,32,0) #010 alors vert
+			end
+			if  dist==25 then
+				call leds.top(0,32,32) #110 alors cyan
+			end
+			if  dist==35 then
+				call leds.top(32,0,0) #001 alors rouge
+			end
+			if  dist==45 then
+				call leds.top(32,0,32) #101 alors magenta
+			end
+			if  dist==55 then
+				call leds.top(32,32,0) #011 alors jaune
+			end
+			if  dist==65 then
+				call leds.top(0,32,16) #111 alors vert-bleuté
+			end
+			if timefordist>0 then #tant que le temps pour faire la distance n'est pas à 0 alors on avance à la vitesse séléctionné
+				motor.left.target=speedcms
+				motor.right.target=speedcms
+				timefordist--
+			else
+				callsub zero
+				call leds.top(16,0,32)
+			end
+		end
+	end
+end
+onevent timer1
+etatg=prox.ground.delta[0] #lecture gauche
+etatd=prox.ground.delta[1] #lecture droite
+emit bla [colour-10,speedcms,motor.left.target,motor.right.target,amorce,tmp1,tmp2,etatg,etatd, bit[0],bit[1],bit[2],dist,timefordist,rotamode,timeforrota, mode, switch]
+if  switch==1 then
+	if (etatg<gris-100) and (tmp2>= lect[2]) then #si gauche voit du noir, alors il vire à droite
+		motor.left.target=vitlect + ((gris-etatg)%vitlect*2)
+		motor.right.target=vitlect - ((gris-etatg)%vitlect*2)
+else if (etatg>gris+100) and (tmp2>= lect[2]) then #si gauche voit du blanc, alors il vire à gauche	
+		motor.left.target=vitlect + ((gris-etatg)%vitlect*2)
+		motor.right.target=vitlect - ((gris-etatg)%vitlect*2)
+	else #sinon il va tout droit
+		motor.left.target=vitlect
+		motor.right.target=vitlect
+		end
+	end
+	if etatd<500 and amorce==0 then #dès que le détecteur droit détecte du noir alors tmp1 décrémente 1 fois et amorce est vrai
+		tmp1--
+		amorce=1
+		if  mode==0 then			
+			L[0]=32
+			callsub verif
+		end
+		if  mode==2 then			
+			L[4]=32
+			callsub verif
+		end
+	end
+	if amorce==1 and tmp1>0 then #si l'amorce est vrai et tmp1 est  supérieur à 0 alors on continue de décrémenter tmp1
+		tmp1--
+	end
+	if tmp1==0 and tmp2>0 then #dès que tmp1 est égal à 0, ça veut dire que l'amorce est finie, et on passe à la lecture tant que tmp 2 est supérieur à0
+		if tmp2==lect[0] then # si le robot se situe dans la première case, il lit le premier bit
+			if etatd<500 then #comparaison pour déterminer si c'est 1 ou 0
+				bit[0]=1
+			else 
+				bit[0]=0
+			end
+			if  mode==0 then
+				if  bit[0]==1 then					
+					L[1]=32
+					callsub verif
+				else
+					L[1]=0
+					callsub verif
+				end
+			end
+			if  mode==2 then
+				if  bit[0]==1 then					
+					L[5]=32
+					callsub verif
+				else
+					L[5]=0
+					callsub verif
+				end
+			end		
+		end
+		if tmp2==lect[1] then # si le robot se situe dans la deuxième case, il lit le deuxième bit
+			if etatd<500 then
+				bit[1]=1
+			else 
+				bit[1]=0
+			end
+			if  mode==0 then
+				if  bit[1]==1 then					
+					L[2]=32
+					callsub verif
+				else
+					L[2]=0
+					callsub verif
+				end
+			end
+			if  mode==2 then
+				if  bit[1]==1 then					
+					L[6]=32
+					callsub verif
+				else
+					L[6]=0
+					callsub verif
+				end
+			end
+		end
+		if tmp2==lect[2] then # si le robot se situe dans la troisième case, il lit le troisième bit
+			if etatd<500 then
+				bit[2]=1
+			else 
+				bit[2]=0
+			end
+			if  mode==0 then
+				if  bit[2]==1 then					
+					L[3]=32
+					callsub verif
+				else
+					L[3]=0
+					callsub verif
+				end
+			end
+			if  mode==2 then
+				if  bit[2]==1 then					
+					L[7]=32
+					callsub verif
+				else
+					L[7]=0
+					callsub verif
+				end
+			end
+		end
+		tmp2-- #décrémentation de tmp2
+		if  tmp2==0 then #dès que tmp2 est égal à 0 on affiche la couleur correspondant au bit lu
+			amorce=0 # on remet amorce à 0 pour qu'on puisse relire un autre code barre en chemin
+			tmp1=incamorce #on remet tmp1 à la valeur incamorce
+			if bit[0]==0 then
+				if bit[1]==0 then
+					if bit[2]==0 then
+						call leds.top(16,16,16) #si 000 alors blanc
+					else
+						call leds.top(32,0,0)#si 001 alors rouge
+					end
+				else 
+					if bit[2]==0 then
+						call leds.top(0,32,0)#si 010 alors vert
+					else
+						call leds.top(32,32,0)#si 011 alors jaune
+					end
+				end
+			else 
+				if bit[1]==0 then
+					if bit[2]==0 then
+						call leds.top(0,0,32)#si 100 alors bleu
+					else
+						call leds.top(32,0,32)#si 101 alors magenta
+					end
+				else 
+					if bit[2]==0 then
+						call leds.top(0,32,32)#si 110 alors cyan
+					else
+						call leds.top(0,32,16)#si 111 alors vert bleuté
+					end
+				end
+			end
+			mode++
+			tmp2=inclect#tmp2 est remis à la valeur de inclect
+		end
+	end
+	if  mode==1 then
+		dist=bit[0]*10+bit[1]*20+bit[2]*40 -5
+		if  colour==10 then
+			timefordist=0
+		else
+			timefordist=dist*100/(colour-10)
+		end
+		mode++
+	end
+	if  mode==3 then
+		if  bit[0]==0 then #les ifs qui permettent de savoir dans quel rotamode on se situe
+			if bit[1]==0 then
+				if  bit[2]==0 then
+					rotamode=0
+				else
+					rotamode=4
+				end
+			else
+				if  bit[2]==0 then
+					rotamode=2
+				else
+					rotamode=6
+				end
+			end
+		else
+			if bit[1]==0 then
+				if  bit[2]==0 then
+					rotamode=1
+				else
+					rotamode=5
+				end
+			else
+				if  bit[2]==0 then
+					rotamode=3
+				else
+					rotamode=7
+				end
+			end
+		end
+		if  rotamode==0 or rotamode==7 then #si rotamode est égal à 0 ou 7 alors le robot ne fait rien 
+			timeforrota=0 #pas de temps pour tourner donc
+		else
+			if  colour==10 then #si la vitesse séléctionné au début est 0 alors il reste sur place
+				timeforrota=0
+			else
+				if  rotamode==1 or rotamode==2 then #si rotamode est égal à 1 ou 2 alors il tourne 45°
+					timeforrota=1900/(colour-10)/4#formule pour le temps de faire 45°
+				end
+				if rotamode==3 or rotamode==4 then #si rotamode est égal à 3 ou 4 alors il tourne 90°
+					timeforrota=1900/(colour-10)/2
+				end
+				if rotamode==5 or rotamode==6 then #si rotamode est égal à 5 ou 6 alors il tourne 120°
+					timeforrota=1900/(colour-10)/2 + 1900/(colour-10)/6
+				end
+			end
+		end
+		mode=0
+		switch++
+	end
+end
+
+onevent button.right #incrémente en cm/s
+if  switch==0 then
+	if button.right==1 then
+			if impaire==1 then
+			speedcms+=23
+			impaire=0
+			colour++
+			else
+			speedcms+=22
+			impaire=1
+			colour++
+			end
+			if speedcms>500 then #revient à 0 si la vitesse surpasse 500 u
+				speedcms=0
+				impaire=1
+				colour=10
+			end
+			call leds.top(colour,0,0)
+	end
+end
+
+onevent button.left #décremente en cm/s
+if  switch==0 then
+	if button.left==1 then
+			if impaire==1 then
+			speedcms-=22
+			impaire=0
+			colour--
+			else
+			speedcms-=23
+			impaire=1
+			colour--
+			end
+			if speedcms<0 then #revient à 495 si la vitesse est en dessouds de 0 u
+				speedcms=495
+				impaire=1
+				colour=32
+			end
+			call leds.top(colour,0,0)
+	end
+end
+onevent button.forward
+if  button.forward==1 and switch==0 then
+	change++
+	if  change==3 then
+		change=0
+	end
+	if  change==0 then
+		incamorce=35
+		inclect=65
+		lect=[60,37,12]
+		vitlect=23
+		tmp1=incamorce
+		tmp2=inclect
+		call leds.top(32,8,16)
+		cmsplace=1
+		timeforplace=1000/cmsplace
+	end
+	if  change==1 then
+		incamorce=17
+		inclect=33
+		lect=[30,18,6]
+		vitlect=45
+		tmp1=incamorce
+		tmp2=inclect
+		call leds.top(16,32,8)
+		cmsplace=2
+		timeforplace=1000/cmsplace
+	end
+	if  change==2 then
+		incamorce=7
+		inclect=13
+		lect=[11,7,2]
+		vitlect=113
+		tmp1=incamorce
+		tmp2=inclect
+		call leds.top(8,16,32)
+		cmsplace=5
+		timeforplace=1000/cmsplace
+	end
+end
+onevent button.center
+if button.center==1 then #incrémente le mode à chaque fois qu'on appuye sur le bouton central
+	switch++
+	call leds.bottom.left(0,0,0)
+	call leds.bottom.right(0,0,0)
+	call leds.top(0,0,0)
+end
+if  switch==3 then #remet le mode à 0 quand le mode est à 2 (donc on a que 2 modes)
+	switch=0
+end
+
+onevent button.backward #arrêt manuel basé sur n'importe quelle valeur détectée par les capteurs de proximité
+	if   (etatg>=0 and etatd >=0) then
+		call leds.top(32,32,0)
+		callsub zero
+	end]]></node>
+
+
+</network>

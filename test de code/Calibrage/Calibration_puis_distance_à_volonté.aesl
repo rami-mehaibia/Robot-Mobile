@@ -1,0 +1,141 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event name="calibration" size="9"/>
+<event name="temps" size="1"/>
+<event name="vitesse" size="1"/>
+
+
+<!--node Thymio sur DESKTOP-V5RDJ31 - 5532-->
+<node nodeId="{766b1ef6-fe4d-4bc5-abb3-7d0c1d1adc09}" name="Thymio sur DESKTOP-V5RDJ31 - 5532"><![CDATA[var x=10
+var arrête=0
+var time=0
+var etatg
+var etatd
+var delta=0
+var etat=0
+var switch=0
+var mode=0
+var y=0
+var z=0
+var timedist
+var inc=0
+timer.period[1]=100
+timer.period[0]=10000
+onevent button.forward
+if switch==0 and button.forward==1 then #change en mode distance de calibrage
+	mode++
+end
+if mode==2 then #change en mode lecture de vitesse
+	mode=0
+end
+onevent button.right #change la couleur en rajoutant du rouge pour symboliser la vitesse en plus
+
+	if button.right==1 and x<=20 and switch==0 and mode==0 then #augmente la vitesse (limite 20 et du coup 500)
+		call leds.top(x,0,0)
+		x=x+1
+	end
+	if  button.right==1 and y<40 and switch==0 and mode==1 then #augmente la distance de calibration (limite 40 cm)
+		y++
+		if  y%2==0 then
+			call leds.top(0,y,0)
+		end
+	end
+	if  button.right==1 and z<40 and switch==2 then #augmente la distance qu'on veut aller (limite 40 cm)
+		z++
+		if z%2==0 then
+			call leds.top(z,0,z)
+		end
+		timedist=delta*z/y #calcule le temps nécessaire pour faire cette distance
+	end
+
+onevent button.left #chnage de couleur en enlevant du rouge pour symboliser la vitesse en moins
+
+	if button.left==1 and x>0 and switch==0 and mode==0 then #descend la vitesse
+		call leds.top(x,0,0)
+		x=x-1
+	end
+	if  button.left==1 and y>=0 and switch==0 and mode==1 then #descend la distance de calibration
+		y--
+		if  y%2==0 then
+			call leds.top(0,y,0)
+		end
+	end
+	if  button.left==1 and z>=0 and switch==2 then #descend la distance qu'on veut aller
+		z--
+		if z%2==0 then
+			call leds.top(z,0,z)
+		end
+		timedist=delta*z/y #calcule le temps nécessaire pour faire cette distance
+	end
+
+onevent button.center #Bouton avec lequel on commence à une vitesse constante
+if  button.center==1 then #à chaque fois qu'on appuye sur le bouton du centre son état change
+	switch++
+	if  switch==4 then #remet tout dans des valeurs initiales
+		x=10
+		y=0
+		z=0
+		delta=0
+		timedist=0
+		inc=0
+		mode=0
+		arrête=0
+		switch=0
+	end
+end
+	if  etatg>200 and etatd >200 and etat==0 and switch==1 then #vitesse de base avant qu'il ne détecte du noir
+		motor.right.target=125
+		motor.left.target=125
+		call leds.top(0,0,32)
+		etat=1
+		end
+onevent timer1
+etatg=prox.ground.delta[0]
+etatd=prox.ground.delta[1]
+emit calibration [x*25,x, y, delta, z,timedist,inc,switch,mode]
+	if  etatg<=200 and etatd <=200 and etat==1 and switch==1 then	#dès qu'il entre sur la ligne noir il change de vitesse à la vitesse séléctionnée
+			motor.right.target=x*25
+			motor.left.target=x*25
+			call leds.top(0,32,0)
+			arrête=1
+			delta++ #incrémente tous les 0,1 secondes
+		end
+	if etatg>200 and etatd >200 and arrête==1 and switch==1 then #dès qu'il détecte du blanc, il s'arrête et donc l'incrémentation du temps s'arrête également
+			motor.right.target=0
+			motor.left.target=0
+			call leds.top(0,32,32)
+	end
+	if  switch==3 and inc<timedist then #fait la distance à l'aide d'une comparaison entre une valeure qui s'incrémente et une calculée
+		motor.left.target=x*25
+		motor.right.target=x*25
+		inc++
+		call leds.top(16,32,0)
+	end
+	if  switch==3 and inc>=timedist then #arrête le robot après avoir effectué sa distance
+		motor.left.target=0
+		motor.right.target=0
+		call leds.top(0,32,16)
+	end
+onevent button.backward #arrêt manuel basé sur n'importe quelle valeur détectée par les capteurs de proximité
+	if   (etatg>=0 and etatd >=0) then
+		motor.right.target=0
+		motor.left.target=0
+		call leds.top(32,32,0)
+		etat=0
+		x=10
+		y=0
+		z=0
+		delta=0
+		timedist=0
+		inc=0
+		mode=0
+		arrête=0
+		switch=0
+	end
+	]]></node>
+
+
+</network>
